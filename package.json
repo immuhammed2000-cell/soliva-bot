@@ -1,0 +1,12 @@
+{
+  "name": "soliva-bot",
+  "version": "1.0.0",
+  "description": "Soliva Bot - بوت ديسكورد عربي شامل",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  }
+}

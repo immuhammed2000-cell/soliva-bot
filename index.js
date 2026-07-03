@@ -165,7 +165,7 @@ function successEmbed(msg) {
 function helpEmbed() {
   return new EmbedBuilder()
     .setColor('#0099ff')
-    .setTitle('📋 أوامر Soliva Bot')
+    .setTitle('📋 أوامر 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘')
     .setDescription('تقدر تستخدم الأوامر بثلاث طرق: `!أمر` أو `/أمر` أو حتى بدون علامة لأوامر T و Top فقط.')
     .addFields(
       { name: '🛡️ الإدارة', value: '`كيك` `باند` `رفع-باند` `تحذير` `تحذيرات` `شيل-تحذير` `مسح-تحذيرات` `كتم` `رفع-كتم` `مسح`' },
@@ -574,7 +574,7 @@ client.on('messageCreate', async message => {
   }
 
   if (['بوت'].includes(command)) {
-    return message.reply({ embeds: [new EmbedBuilder().setColor('#7289da').setTitle('🤖 Soliva Bot').addFields({ name: '🏓 البينغ', value: `${client.ws.ping}ms`, inline: true }, { name: '⏱️ التشغيل', value: `${Math.floor(process.uptime() / 60)} دقيقة`, inline: true }, { name: '🌐 السيرفرات', value: `${client.guilds.cache.size}`, inline: true }).setTimestamp()] });
+    return message.reply({ embeds: [new EmbedBuilder().setColor('#7289da').setTitle('🤖 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘').addFields({ name: '🏓 البينغ', value: `${client.ws.ping}ms`, inline: true }, { name: '⏱️ التشغيل', value: `${Math.floor(process.uptime() / 60)} دقيقة`, inline: true }, { name: '🌐 السيرفرات', value: `${client.guilds.cache.size}`, inline: true }).setTimestamp()] });
   }
 
   if (['بينغ'].includes(command)) {
@@ -754,7 +754,7 @@ client.on('interactionCreate', async interaction => {
     const menu = new StringSelectMenuBuilder().setCustomId('ticket_open_select').setPlaceholder('اختر نوع التذكرة')
       .addOptions(cats.map(c => new StringSelectMenuOptionBuilder().setLabel(c.name).setValue(c.key).setEmoji(c.emoji)));
     const embed = new EmbedBuilder().setColor('#FFD700').setTitle('الدعم الفني').setDescription('اختر نوع التذكرة اللي تبيها من القائمة تحت 👇')
-      .setFooter({ text: 'Powered by Soliva Bot', iconURL: client.user.displayAvatarURL() });
+      .setFooter({ text: 'Powered by 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', iconURL: client.user.displayAvatarURL() });
     await interaction.channel.send({ embeds: [embed], components: [new ActionRowBuilder().addComponents(menu)] });
     return interaction.reply({ embeds: [successEmbed('تم نشر قائمة التذاكر بالروم! ✅')], ephemeral: true });
   }
@@ -889,7 +889,7 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (cmd === 'بوت') {
-      return interaction.reply({ embeds: [new EmbedBuilder().setColor('#7289da').setTitle('🤖 Soliva Bot').addFields({ name: '🏓 البينغ', value: `${client.ws.ping}ms`, inline: true }, { name: '⏱️ التشغيل', value: `${Math.floor(process.uptime() / 60)} دقيقة`, inline: true }, { name: '🌐 السيرفرات', value: `${client.guilds.cache.size}`, inline: true }).setTimestamp()] });
+      return interaction.reply({ embeds: [new EmbedBuilder().setColor('#7289da').setTitle('🤖 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘').addFields({ name: '🏓 البينغ', value: `${client.ws.ping}ms`, inline: true }, { name: '⏱️ التشغيل', value: `${Math.floor(process.uptime() / 60)} دقيقة`, inline: true }, { name: '🌐 السيرفرات', value: `${client.guilds.cache.size}`, inline: true }).setTimestamp()] });
     }
 
     if (cmd === 'بينغ') {
@@ -928,7 +928,7 @@ client.on('interactionCreate', async interaction => {
       .setColor('#FFD700')
       .setTitle('الدعم الفني')
       .setDescription('اضغط بالأسفل لإنشاء تذكرة دعم جديدة 🎫')
-      .setFooter({ text: 'Powered by Soliva Bot', iconURL: client.user.displayAvatarURL() });
+      .setFooter({ text: 'Powered by 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', iconURL: client.user.displayAvatarURL() });
 
     await interaction.channel.send({ embeds: [embed], components: [row] });
     await interaction.update({ content: `✅ تم تحديد الرولات: ${roleIds.map(id => `<@&${id}>`).join(' ')}`, components: [] });
@@ -978,8 +978,8 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.once('ready', async () => {
-  console.log(`✅ Soliva Bot جاهز | ${client.user.tag}`);
-  client.user.setActivity('!مساعدة | Soliva Bot', { type: 0 });
+  console.log(`✅ 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘 جاهز | ${client.user.tag}`);
+  client.user.setActivity('!مساعدة | 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', { type: 0 });
   await registerSlashCommands();
 });
 

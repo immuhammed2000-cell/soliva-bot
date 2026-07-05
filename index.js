@@ -67,6 +67,17 @@ function normalize(str) {
   return str.trim().replace(/\s+/g, ' ');
 }
 
+function parseDuration(str) {
+  if (!str) return null;
+  if (/^\d+$/.test(str)) return parseInt(str) * 60 * 1000; // رقم لحاله = دقائق
+  const match = str.match(/^(\d+)(m|h|d)$/i);
+  if (!match) return null;
+  const num = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  const mult = unit === 'm' ? 60 * 1000 : unit === 'h' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+  return num * mult;
+}
+
 function startGame(channelId, type, answer) {
   activeGames[channelId] = { type, answer, startedAt: Date.now() };
 }
@@ -154,6 +165,13 @@ function hasPerm(member, perm) {
   return member.permissions.has(perm);
 }
 
+function canModerate(executor, target, guild) {
+  if (target.id === executor.id) return false; // ما تقدر تسوي شي بنفسك
+  if (target.id === guild.ownerId) return false; // ما أحد يقدر يستهدف مالك السيرفر
+  if (executor.id === guild.ownerId) return true; // المالك يقدر يستهدف أي أحد
+  return executor.roles.highest.position > target.roles.highest.position;
+}
+
 function errorEmbed(msg) {
   return new EmbedBuilder().setColor('#ff0000').setDescription(`❌ ${msg}`);
 }
@@ -162,13 +180,25 @@ function successEmbed(msg) {
   return new EmbedBuilder().setColor('#00ff00').setDescription(`✅ ${msg}`);
 }
 
+function usageEmbed(name, description, usage, example) {
+  return new EmbedBuilder()
+    .setColor('#2f3136')
+    .setTitle(`Command: ${name}`)
+    .addFields(
+      { name: '\u200b', value: description },
+      { name: 'الاستخدام:', value: usage },
+      { name: 'مثاله للأمر:', value: example },
+    );
+}
+
 function helpEmbed() {
   return new EmbedBuilder()
     .setColor('#0099ff')
     .setTitle('📋 أوامر 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘')
     .setDescription('تقدر تستخدم الأوامر بثلاث طرق: `!أمر` أو `/أمر` أو حتى بدون علامة لأوامر T و Top فقط.')
     .addFields(
-      { name: '🛡️ الإدارة', value: '`كيك` `باند` `رفع-باند` `تحذير` `تحذيرات` `شيل-تحذير` `مسح-تحذيرات` `كتم` `رفع-كتم` `مسح`' },
+      { name: '🛡️ الإدارة', value: '`كيك` `باند` `رفع-باند` `تحذير` `تحذيرات` `شيل-تحذير` `مسح-تحذيرات` `كتم @شخص 2h سبب` `رفع-كتم` `مسح` `رول @شخص اسم-الرتبة` `نك @شخص اسم-جديد` `قول #روم النص`' },
+      { name: '🔒 قفل الشات', value: 'اكتب `ق` بس لقفل الروم، و`ف` بس لفتحه (بدون علامة)' },
       { name: '⚙️ إعدادات', value: '`روم-الترقية #روم` `قفل-اكسبي` `فتح-اكسبي`' },
       { name: '📊 المستويات', value: '`T day` `T week` `T month` `T year` `Top` (من بداية السيرفر)' },
       { name: '🎫 التذاكر', value: '`تذكرة` `لوحة-تذاكر` `اعداد-التذاكر` (نظام أقسام متعددة، إدارة فقط)' },
@@ -438,11 +468,25 @@ client.on('messageCreate', async message => {
   const rawContent = message.content.trim();
   const noPrefixMatch = rawContent.match(/^t\s+(day|week|month|year)$/i);
   if (noPrefixMatch) {
+    if (xpLocked[message.guild.id]) return message.reply({ embeds: [errorEmbed('نظام الـ XP مقفول حالياً، لازم تفتحه أول (!فتح-اكسبي)')] });
     const key = noPrefixMatch[1].toLowerCase();
     return message.reply({ embeds: [leaderboardByPeriod(key, periodLabels[key])] });
   }
   if (/^top$/i.test(rawContent)) {
+    if (xpLocked[message.guild.id]) return message.reply({ embeds: [errorEmbed('نظام الـ XP مقفول حالياً، لازم تفتحه أول (!فتح-اكسبي)')] });
     return message.reply({ embeds: [topAllTimeEmbed()] });
+  }
+
+  // ---------- قفل/فتح الشات: تكتب "ق" بس تقفل، "ف" بس تفتح (بدون أي علامة) ----------
+  if (rawContent === 'ق') {
+    if (!hasPerm(message.member, PermissionFlagsBits.ManageChannels)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
+    await message.channel.permissionOverwrites.edit(message.guild.id, { SendMessages: false });
+    return message.channel.send({ embeds: [successEmbed('🔒 تم قفل الشات')] });
+  }
+  if (rawContent === 'ف') {
+    if (!hasPerm(message.member, PermissionFlagsBits.ManageChannels)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
+    await message.channel.permissionOverwrites.edit(message.guild.id, { SendMessages: null });
+    return message.channel.send({ embeds: [successEmbed('🔓 تم فتح الشات')] });
   }
 
 
@@ -458,6 +502,7 @@ client.on('messageCreate', async message => {
     if (!hasPerm(message.member, PermissionFlagsBits.KickMembers)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
     const target = message.mentions.members.first();
     if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
+    if (!canModerate(message.member, target, message.guild)) return message.reply({ embeds: [errorEmbed('ما تقدر تسوي شي بهذا الشخص، رتبته أعلى منك أو تساويك!')] });
     const reason = args.slice(1).join(' ') || 'بدون سبب';
     await target.kick(reason);
     return message.reply({ embeds: [new EmbedBuilder().setColor('#ff6600').setTitle('👢 تم الطرد').addFields({ name: 'العضو', value: target.user.tag, inline: true }, { name: 'السبب', value: reason }).setTimestamp()] });
@@ -467,6 +512,7 @@ client.on('messageCreate', async message => {
     if (!hasPerm(message.member, PermissionFlagsBits.BanMembers)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
     const target = message.mentions.members.first();
     if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
+    if (!canModerate(message.member, target, message.guild)) return message.reply({ embeds: [errorEmbed('ما تقدر تسوي شي بهذا الشخص، رتبته أعلى منك أو تساويك!')] });
     const reason = args.slice(1).join(' ') || 'بدون سبب';
     await target.ban({ reason });
     return message.reply({ embeds: [new EmbedBuilder().setColor('#ff0000').setTitle('🔨 تم الحظر').addFields({ name: 'العضو', value: target.user.tag, inline: true }, { name: 'السبب', value: reason }).setTimestamp()] });
@@ -483,7 +529,8 @@ client.on('messageCreate', async message => {
   if (['تحذير'].includes(command)) {
     if (!hasPerm(message.member, PermissionFlagsBits.ModerateMembers)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
     const target = message.mentions.members.first();
-    if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
+    if (!target) return message.reply({ embeds: [usageEmbed('تحذير', 'تحذير العضو.', '!تحذير [العضو] [السبب]', '!تحذير @شخص سبام')] });
+    if (!canModerate(message.member, target, message.guild)) return message.reply({ embeds: [errorEmbed('ما تقدر تحذر هذا الشخص، رتبته أعلى منك أو تساويك!')] });
     const reason = args.slice(1).join(' ') || 'بدون سبب';
     if (!warnings[target.id]) warnings[target.id] = [];
     const warnId = warningIdCounter++;
@@ -526,11 +573,16 @@ client.on('messageCreate', async message => {
   if (['كتم'].includes(command)) {
     if (!hasPerm(message.member, PermissionFlagsBits.ModerateMembers)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
     const target = message.mentions.members.first();
-    if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
-    const minutes = parseInt(args[1]) || 10;
+    if (!target) return message.reply({ embeds: [usageEmbed('كتم', 'كتم العضو مؤقتاً عن الكتابة.', '!كتم [العضو] [المدة] [السبب]', '!كتم @شخص 2h سبام')] });
+    if (!canModerate(message.member, target, message.guild)) return message.reply({ embeds: [errorEmbed('ما تقدر تكتم هذا الشخص، رتبته أعلى منك أو تساويك!')] });
+    const durationStr = args[1];
+    const ms = parseDuration(durationStr);
+    if (durationStr && !ms) return message.reply({ embeds: [errorEmbed('صيغة المدة غلط! استخدم رقم لحاله (دقائق) أو مثل: 30m / 2h / 1d')] });
+    const finalMs = ms || 10 * 60 * 1000;
+    const label = durationStr && ms ? (/^\d+$/.test(durationStr) ? `${durationStr} دقيقة` : durationStr) : '10 دقايق';
     const reason = args.slice(2).join(' ') || 'بدون سبب';
-    await target.timeout(minutes * 60 * 1000, reason);
-    return message.reply({ embeds: [new EmbedBuilder().setColor('#888888').setTitle('🔇 تم الكتم').addFields({ name: 'العضو', value: target.user.tag, inline: true }, { name: 'المدة', value: `${minutes} دقيقة`, inline: true }, { name: 'السبب', value: reason }).setTimestamp()] });
+    await target.timeout(finalMs, reason);
+    return message.reply({ embeds: [new EmbedBuilder().setColor('#888888').setTitle('🔇 تم الكتم').addFields({ name: 'العضو', value: target.user.tag, inline: true }, { name: 'المدة', value: label, inline: true }, { name: 'السبب', value: reason }).setTimestamp()] });
   }
 
   if (['رفع-كتم'].includes(command)) {
@@ -539,6 +591,39 @@ client.on('messageCreate', async message => {
     if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
     await target.timeout(null);
     return message.reply({ embeds: [successEmbed(`تم رفع الكتم عن ${target.user.tag}`)] });
+  }
+
+  if (['رول'].includes(command)) {
+    if (!hasPerm(message.member, PermissionFlagsBits.ManageRoles)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
+    const target = message.mentions.members.first();
+    if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
+    const query = args.slice(1).join(' ').toLowerCase().trim();
+    if (!query) return message.reply({ embeds: [errorEmbed('اكتب اسم الرتبة أو أول كم حرف منها!')] });
+    const role = message.guild.roles.cache.find(r => r.name.toLowerCase().startsWith(query)) || message.guild.roles.cache.find(r => r.name.toLowerCase().includes(query));
+    if (!role) return message.reply({ embeds: [errorEmbed('ما لقيت رتبة بهذا الاسم!')] });
+    await target.roles.add(role);
+    return message.reply({ embeds: [successEmbed(`تم إعطاء ${target} رتبة ${role}`)] });
+  }
+
+  if (['نك', 'نيم'].includes(command)) {
+    if (!hasPerm(message.member, PermissionFlagsBits.ManageNicknames)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
+    const target = message.mentions.members.first();
+    if (!target) return message.reply({ embeds: [errorEmbed('حدد العضو!')] });
+    if (!canModerate(message.member, target, message.guild)) return message.reply({ embeds: [errorEmbed('ما تقدر تغير اسم هذا الشخص، رتبته أعلى منك أو تساويك!')] });
+    const newNick = args.slice(1).join(' ').trim();
+    if (!newNick) return message.reply({ embeds: [errorEmbed('اكتب الاسم الجديد!')] });
+    await target.setNickname(newNick);
+    return message.reply({ embeds: [successEmbed(`تم تغيير اسم ${target} إلى **${newNick}**`)] });
+  }
+
+  if (['قول', 'say'].includes(command)) {
+    if (!hasPerm(message.member, PermissionFlagsBits.ManageMessages)) return message.reply({ embeds: [errorEmbed('ما عندك صلاحية!')] });
+    const channel = message.mentions.channels.first();
+    if (!channel) return message.reply({ embeds: [errorEmbed('منشن الروم! مثال: !قول #الاعلانات مرحباً بالجميع')] });
+    const text = args.slice(1).join(' ').replace(/<#\d+>/g, '').trim();
+    if (!text) return message.reply({ embeds: [errorEmbed('اكتب الرسالة اللي تبي البوت يبعثها!')] });
+    await channel.send(text);
+    await message.delete().catch(() => {});
   }
 
   if (['مسح', 'clear'].includes(command)) {
@@ -789,6 +874,7 @@ client.on('interactionCreate', async interaction => {
     if (cmd === 'كيك') {
       if (!hasPerm(interaction.member, PermissionFlagsBits.KickMembers)) return interaction.reply({ embeds: [errorEmbed('ما عندك صلاحية!')], ephemeral: true });
       const target = await interaction.guild.members.fetch(interaction.options.getUser('user').id);
+      if (!canModerate(interaction.member, target, interaction.guild)) return interaction.reply({ embeds: [errorEmbed('ما تقدر تسوي شي بهذا الشخص، رتبته أعلى منك أو تساويك!')], ephemeral: true });
       const reason = interaction.options.getString('reason') || 'بدون سبب';
       await target.kick(reason);
       return interaction.reply({ embeds: [new EmbedBuilder().setColor('#ff6600').setTitle('👢 تم الطرد').addFields({ name: 'العضو', value: target.user.tag, inline: true }, { name: 'السبب', value: reason }).setTimestamp()] });
@@ -797,6 +883,8 @@ client.on('interactionCreate', async interaction => {
     if (cmd === 'باند') {
       if (!hasPerm(interaction.member, PermissionFlagsBits.BanMembers)) return interaction.reply({ embeds: [errorEmbed('ما عندك صلاحية!')], ephemeral: true });
       const targetUser = interaction.options.getUser('user');
+      const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+      if (targetMember && !canModerate(interaction.member, targetMember, interaction.guild)) return interaction.reply({ embeds: [errorEmbed('ما تقدر تسوي شي بهذا الشخص، رتبته أعلى منك أو تساويك!')], ephemeral: true });
       const reason = interaction.options.getString('reason') || 'بدون سبب';
       await interaction.guild.members.ban(targetUser.id, { reason });
       return interaction.reply({ embeds: [new EmbedBuilder().setColor('#ff0000').setTitle('🔨 تم الحظر').addFields({ name: 'العضو', value: targetUser.tag, inline: true }, { name: 'السبب', value: reason }).setTimestamp()] });
@@ -812,6 +900,8 @@ client.on('interactionCreate', async interaction => {
     if (cmd === 'تحذير') {
       if (!hasPerm(interaction.member, PermissionFlagsBits.ModerateMembers)) return interaction.reply({ embeds: [errorEmbed('ما عندك صلاحية!')], ephemeral: true });
       const targetUser = interaction.options.getUser('user');
+      const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+      if (targetMember && !canModerate(interaction.member, targetMember, interaction.guild)) return interaction.reply({ embeds: [errorEmbed('ما تقدر تحذر هذا الشخص، رتبته أعلى منك أو تساويك!')], ephemeral: true });
       const reason = interaction.options.getString('reason') || 'بدون سبب';
       if (!warnings[targetUser.id]) warnings[targetUser.id] = [];
       const warnId = warningIdCounter++;
@@ -848,6 +938,7 @@ client.on('interactionCreate', async interaction => {
     if (cmd === 'كتم') {
       if (!hasPerm(interaction.member, PermissionFlagsBits.ModerateMembers)) return interaction.reply({ embeds: [errorEmbed('ما عندك صلاحية!')], ephemeral: true });
       const target = await interaction.guild.members.fetch(interaction.options.getUser('user').id);
+      if (!canModerate(interaction.member, target, interaction.guild)) return interaction.reply({ embeds: [errorEmbed('ما تقدر تكتم هذا الشخص، رتبته أعلى منك أو تساويك!')], ephemeral: true });
       const minutes = interaction.options.getInteger('minutes') || 10;
       const reason = interaction.options.getString('reason') || 'بدون سبب';
       await target.timeout(minutes * 60 * 1000, reason);

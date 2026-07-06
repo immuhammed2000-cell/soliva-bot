@@ -112,7 +112,7 @@ function successEmbed(msg) {
 function helpEmbed() {
   return new EmbedBuilder()
     .setColor('#0099ff')
-    .setTitle('📋 أوامر 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘')
+    .setTitle('📋 أوامر 𝐋𝟒 ⌇ 𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘')
     .setDescription('يمكن استخدام الأوامر عبر `!أمر` أو `/أمر`.')
     .addFields(
       { name: '🎫 التذاكر', value: '`تذكرة` `لوحة-تذاكر` `اعداد-التذاكر` `روم-سجل-التذاكر #روم` (للإدارة فقط)' },
@@ -301,7 +301,7 @@ client.on('messageCreate', async message => {
         endGame(message.channel.id);
         return message.reply({ embeds: [successEmbed(`إجابة صحيحة! الرقم الصحيح هو **${target}**. تهانينا لـ ${message.author}!`)] });
       }
-      return message.reply({ embeds: [new EmbedBuilder().setColor('#ffaa00').setDescription(num < target ? '📈 الرقم الذي اخترته أكبر من هذا!' : '📉 الرقم الذي اخترته أصغر من هذا!')] });
+      return message.reply({ embeds: [new EmbedBuilder().setColor('#ffaa00').setDescription(num < target ? '📈 الرقم الذي اخترته أكبر من هذا!' : '📉 الرقم الذي اخترته أصغر من this!')] });
     }
     if (['mufrad', 'jam', 'typing', 'math', 'emoji'].includes(activeGame.type) && guess === normalize(activeGame.answer)) {
       endGame(message.channel.id);
@@ -485,7 +485,7 @@ client.on('interactionCreate', async interaction => {
     const menu = new StringSelectMenuBuilder().setCustomId('ticket_open_select').setPlaceholder('اختر نوع التذكرة')
       .addOptions(cats.map(c => new StringSelectMenuOptionBuilder().setLabel(c.name).setValue(c.key).setEmoji(c.emoji)));
     const embed = new EmbedBuilder().setColor('#FFD700').setTitle('الدعم الفني').setDescription('يُرجى اختيار نوع التذكرة المناسب من القائمة أدناه 👇')
-      .setFooter({ text: 'Powered by 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', iconURL: client.user.displayAvatarURL() });
+      .setFooter({ text: 'Powered by 𝐋𝟒 ⌇ 𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', iconURL: client.user.displayAvatarURL() });
     await interaction.channel.send({ embeds: [embed], components: [new ActionRowBuilder().addComponents(menu)] });
     return interaction.reply({ embeds: [successEmbed('تم نشر قائمة التذاكر في هذا الروم بنجاح.')], ephemeral: true });
   }
@@ -557,7 +557,7 @@ client.on('interactionCreate', async interaction => {
       .setColor('#FFD700')
       .setTitle('الدعم الفني')
       .setDescription('يُرجى الضغط على الزر أدناه لإنشاء تذكرة دعم جديدة 🎫')
-      .setFooter({ text: 'Powered by 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', iconURL: client.user.displayAvatarURL() });
+      .setFooter({ text: 'Powered by 𝐋𝟒 ⌇ 𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', iconURL: client.user.displayAvatarURL() });
 
     await interaction.channel.send({ embeds: [embed], components: [row] });
     await interaction.update({ content: `✅ تم تحديد الرتب: ${roleIds.map(id => `<@&${id}>`).join(' ')}`, components: [] });
@@ -632,8 +632,8 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.once('ready', async () => {
-  console.log(`✅ 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘 جاهز | ${client.user.tag}`);
-  client.user.setActivity('!مساعدة | 𝐌𝟓 ⌇𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', { type: 0 });
+  console.log(`✅ 𝐋𝟒 ⌇ 𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘 جاهز | ${client.user.tag}`);
+  client.user.setActivity('!مساعدة | 𝐋𝟒 ⌇ 𝐂𝐎𝐌𝐌𝐔𝐍𝐈𝐓𝐘', { type: 0 });
   await registerSlashCommands();
 });
 
